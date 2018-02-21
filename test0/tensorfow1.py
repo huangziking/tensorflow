@@ -43,7 +43,61 @@ def normalize_dataset(lex):
     dataset = []
 
     #lex :词汇表;review:评论;clf:评论对应的类型;
-    def string_to_vector(lex,review,clf):
-        pass
+    def string_to_vector(lex,review,clf):#对评论进行分类
+        words = nltk.word_tokenize(line.lower())
+        lemmatizer = WordNetLemmatizer()
+        words = [lemmatizer.lemmatize(word)for word in words]
+
+        features = np.zeros(len(lex))
+        for word in words:
+            if word in lex:
+                features[lex.index(word)] = 1
+        return [features,clf]
+
+    with open(pos_file,'r') as f:
+        lines = f.readline()
+        for line in lines:
+            one_sample = string_to_vector(lex,line,[1,0])
+            dataset.append(one_sample)
+    with open(neg_file,'r') as f:
+        lines = f.readline()
+        for line in lines:
+            one_sample = string_to_vector(lex,line,[0,1])
+            dataset.append(one_sample)
+    print(len(dataset))
+    return dataset
+dataset = normalize_dataset(lex)
+random.shuffle(dataset)#对数据进行随机排列
+
+#with open('save.cPickle','wb') as f:
+     #cPickle.dump(dataset,f)将整理完成的数据进行保存
+test_size = int(len(dataset)*0.1)
+dataset = np.array(dataset)
+train_dataset = dataset[:-test_size]
+test_dataset = dataset[-test_size:]#取10%为测试数据其余90%为训练数据
+#定义每层神经元个数
+n_input_layer = len(lex) #输入层
+n_layer_1 = 1000 #隐藏层1
+n_layer_2 = 1000 #隐藏层2
+n_output_layer=2 #输出层
+#定义待训练的神经网络
+def neural_network(data):
+    #定义第一层的权重和biases
+    layer_1_w_b = {'w_':tf.Variable(tf.random_normal([n_input_layer,n_layer_1])),
+                   'b_':tf.Variable(tf.random_normal([n_layer_1]))}
+    layer_2_w_b = {'w_':tf.Variable(tf.random_normal([n_layer_1,n_layer_2])),
+                   'b_':tf.Variable(tf.random_normal([n_layer_2]))}
+    layer_output_w_b = {'w_':tf.Variable(tf.random_normal([n_layer_2,n_output_layer])),
+                        'b_':tf.Variable(tf.random_normal([n_output_layer]))}
+    print(layer_1_w_b)
+    print(layer_2_w_b)
+    print(layer_output_w_b)
+    layer_1 = tf.add(tf.matmul(data,layer_1_w_b['w_']),layer_1_w_b['b_'])
+    layer_1 = tf.nn.relu(layer_1)#激活函数
+    layer_2 = tf.add(tf.matmul(data,layer_2_w_b['w_']),layer_2_w_b['b_'])
+    layer_2 = tf.nn.relu(layer_2)
+    layer_output = tf.add(tf.matmul(layer_2,layer_output_w_b['w_']),layer_output_w_b['b_'])
+
+    return layer_output
 
 
